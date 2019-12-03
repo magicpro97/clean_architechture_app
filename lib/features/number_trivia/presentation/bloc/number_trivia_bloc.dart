@@ -46,14 +46,17 @@ class NumberTriviaBloc extends Bloc<NumberTriviaEvent, NumberTriviaState> {
         },
             (integer) async* {
           yield Loading();
-          final failureOrTrivia =
-          await getConcreteNumberTrivia(Params(number: integer));
+          final failureOrTrivia = await getConcreteNumberTrivia(
+            Params(number: integer),
+          );
           yield* _eitherLoadedOrErrorState(failureOrTrivia);
         },
       );
     } else if (event is GetTriviaForRandomNumber) {
       yield Loading();
-      final failureOrTrivia = await getRandomNumberTrivia(NoParams());
+      final failureOrTrivia = await getRandomNumberTrivia(
+        NoParams(),
+      );
       yield* _eitherLoadedOrErrorState(failureOrTrivia);
     }
   }
