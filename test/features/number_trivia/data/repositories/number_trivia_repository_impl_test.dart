@@ -34,6 +34,26 @@ void main() {
     );
   });
 
+  void runTestOnline(Function body) {
+    group('device is online', () {
+      setUp(() {
+        when(networkInfo.isConnected).thenAnswer((_) async => true);
+      });
+
+      body();
+    });
+  }
+
+  void runTestOffline(Function body) {
+    group('device is online', () {
+      setUp(() {
+        when(networkInfo.isConnected).thenAnswer((_) async => false);
+      });
+
+      body();
+    });
+  }
+
   group('getConcreteNumberTrivia', () {
     final tNumber = 1;
     final tNumberTriviaModel =
@@ -49,11 +69,7 @@ void main() {
       verify(networkInfo.isConnected);
     });
 
-    group('device is online', () {
-      setUp(() {
-        when(networkInfo.isConnected).thenAnswer((_) async => true);
-      });
-
+    runTestOnline(() {
       test(
           'should return remote data when the call to remote data source is successs',
               () async {
@@ -93,17 +109,13 @@ void main() {
           });
     });
 
-    group('device is offline', () {
-      setUp(() {
-        when(networkInfo.isConnected).thenAnswer((_) async => false);
-      });
-
+    runTestOffline(() {
       test(
           'should return last locally cached data when the cachded data is present',
               () async {
             // arrange
-            when(localDataSource.getLastNumberTrivia()).thenAnswer((
-                _) async => tNumberTrivia);
+            when(localDataSource.getLastNumberTrivia())
+                .thenAnswer((_) async => tNumberTrivia);
             // act
             final result = await repository.getConcreteNumberTrivia(tNumber);
             // assert
@@ -111,14 +123,99 @@ void main() {
             verify(localDataSource.getLastNumberTrivia());
             expect(result, equals(Right(tNumberTrivia)));
           });
-      test(
-          'should return CachedFailure when there is no cached data present',
+      test('should return CachedFailure when there is no cached data present',
               () async {
             // arrange
             when(localDataSource.getLastNumberTrivia()).thenThrow(
                 CacheException());
             // act
             final result = await repository.getConcreteNumberTrivia(tNumber);
+            // assert
+            verifyZeroInteractions(remoteDataSource);
+            verify(localDataSource.getLastNumberTrivia());
+            expect(result, equals(Left(CacheFailure())));
+          });
+    });
+  });
+
+  group('getRandomNumberTrivia', () {
+    final tNumberTriviaModel =
+    NumberTriviaModel(number: 1, text: 'test trivia');
+    final NumberTrivia tNumberTrivia = tNumberTriviaModel;
+
+    test('should check if the device is online', () async {
+      // arrange
+      when(networkInfo.isConnected).thenAnswer((_) async => true);
+      // act
+      repository.getRandomNumberTrivia();
+      // assert
+      verify(networkInfo.isConnected);
+    });
+
+    runTestOnline(() {
+      test(
+          'should return remote data when the call to remote data source is successs',
+              () async {
+            // arrange
+            when(remoteDataSource.getRandomNumberTrivia())
+                .thenAnswer((_) async => tNumberTrivia);
+            // act
+            final result = await repository.getRandomNumberTrivia();
+            // assert
+            verify(remoteDataSource.getRandomNumberTrivia());
+            expect(result, equals(Right(tNumberTrivia)));
+          });
+
+      test(
+          'should cache data locally when the call to remote data source is successs',
+              () async {
+            // arrange
+            when(remoteDataSource.getRandomNumberTrivia())
+                .thenAnswer((_) async => tNumberTrivia);
+            // act
+            await repository.getRandomNumberTrivia();
+            // assert
+            verify(remoteDataSource.getRandomNumberTrivia());
+            verify(localDataSource.cacheNumberTrivia(tNumberTrivia));
+          });
+
+      test(
+          'should return server failure when the call to remote data source is successs',
+              () async {
+            // arrange
+            when(remoteDataSource.getRandomNumberTrivia())
+                .thenThrow(ServerException());
+            // act
+            final result = await repository.getRandomNumberTrivia();
+            // assert
+            verify(remoteDataSource.getRandomNumberTrivia());
+            verifyZeroInteractions(localDataSource);
+            expect(result, Left(ServerFailure()));
+          });
+    });
+
+    runTestOffline(() {
+      test(
+          'should return last locally cached data when the cachded data is present',
+              () async {
+            // arrange
+            when(localDataSource.getLastNumberTrivia())
+                .thenAnswer((_) async => tNumberTrivia);
+            // act
+            final result = await repository.getRandomNumberTrivia();
+            // assert
+            verifyZeroInteractions(remoteDataSource);
+            verify(localDataSource.getLastNumberTrivia());
+            expect(result, equals(Right(tNumberTrivia)));
+          });
+
+      test('should return CachedFailure when there is no cached data present',
+              () async {
+            // arrange
+            when(localDataSource.getLastNumberTrivia()).thenThrow(
+                CacheException());
+            // act
+            final result = await repository.getRandomNumberTrivia();
             // assert
             verifyZeroInteractions(remoteDataSource);
             verify(localDataSource.getLastNumberTrivia());
