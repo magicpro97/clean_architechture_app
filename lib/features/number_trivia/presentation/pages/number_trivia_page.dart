@@ -9,6 +9,8 @@ import '../../../../injection_container.dart';
 class NumberTriviaPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final textController = TextEditingController();
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Number Trivia'),
@@ -48,27 +50,49 @@ class NumberTriviaPage extends StatelessWidget {
                 ),
                 Column(
                   children: <Widget>[
-                    Placeholder(
-                      fallbackHeight: 40,
+                    TextField(
+                      keyboardType: TextInputType.numberWithOptions(),
+                      controller: textController,
+                      decoration: InputDecoration(
+                          hintText: 'Input a number',
+                          border: OutlineInputBorder(
+                              borderRadius:
+                              const BorderRadius.all(Radius.circular(10)))),
                     ),
                     SizedBox(
                       height: 10.0,
                     ),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                            child: Placeholder(
-                          fallbackHeight: 30.0,
-                        )),
-                        SizedBox(
-                          width: 10.0,
-                        ),
-                        Expanded(
-                          child: Placeholder(
-                            fallbackHeight: 30.0,
+                    BlocBuilder<NumberTriviaBloc, NumberTriviaState>(
+                      builder: (context, state) =>
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                  child: MaterialButton(
+                                    child: Text(
+                                      'Search',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    onPressed: () {
+                                      _searchNumberTrivia(
+                                          context, textController.text);
+                                    },
+                                    color: Theme
+                                        .of(context)
+                                        .primaryColor,
+                                  )),
+                              SizedBox(
+                                width: 10.0,
+                              ),
+                              Expanded(
+                                child: MaterialButton(
+                                  child: Text('Random'),
+                                  onPressed: () {
+                                    _getRandomNumberTrivia(context);
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
                     )
                   ],
                 )
@@ -78,6 +102,15 @@ class NumberTriviaPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _searchNumberTrivia(BuildContext context, String text) {
+    BlocProvider.of<NumberTriviaBloc>(context)
+        .add(GetTriviaForConcreteNumber(text));
+  }
+
+  void _getRandomNumberTrivia(BuildContext context) {
+    BlocProvider.of<NumberTriviaBloc>(context).add(GetTriviaForRandomNumber());
   }
 }
 
